@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credit Risk Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --good: #3fb950;
+    --bad: #f85149;
+    --accent: #388bfd;
+    --accent-dim: #1f3a5c;
+    --warn: #d29922;
+    --radius: 8px;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .logo span { color: var(--accent); }
+  .badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* Layout */
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  .hero {
+    margin-bottom: 3rem;
+  }
+  .hero h1 {
+    font-size: 2.2rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero p {
+    color: var(--muted);
+    max-width: 520px;
+    font-size: 15px;
+  }
+
+  /* Form grid */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field label {
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .field input, .field select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237d8590' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--accent);
+  }
+
+  /* Hint text */
+  .hint {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  /* Submit button */
+  .btn-predict {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+  .btn-predict:hover { opacity: 0.88; }
+  .btn-predict:active { transform: scale(0.99); }
+
+  /* Result panel */
+  #result {
+    margin-top: 1.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    display: none;
+  }
+  .result-header {
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .verdict {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+  .verdict.good { background: rgba(63,185,80,0.15); color: var(--good); border: 1px solid rgba(63,185,80,0.3); }
+  .verdict.bad  { background: rgba(248,81,73,0.15);  color: var(--bad);  border: 1px solid rgba(248,81,73,0.3); }
+
+  .result-label {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .result-body {
+    padding: 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 600px) { .result-body { grid-template-columns: 1fr; } }
+
+  .metric {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .metric-label {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .metric-value {
+    font-size: 22px;
+    font-family: var(--mono);
+    font-weight: 500;
+  }
+  .metric-value.good { color: var(--good); }
+  .metric-value.bad  { color: var(--bad); }
+  .metric-value.neutral { color: var(--text); }
+
+  /* Risk bar */
+  .bar-wrap {
+    padding: 0 1.25rem 1.25rem;
+  }
+  .bar-label {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .bar-track {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* Feature impact */
+  .factors {
+    padding: 0 1.25rem 1.25rem;
+    border-top: 1px solid var(--border);
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+  }
+  .factors-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  .factor-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .factor-name { color: var(--muted); width: 160px; flex-shrink: 0; font-family: var(--mono); font-size: 12px; }
+  .factor-bar-track { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .factor-bar-fill  { height: 100%; border-radius: 2px; }
+  .factor-val { font-family: var(--mono); font-size: 12px; color: var(--muted); width: 36px; text-align: right; }
+
+  /* Disclaimer */
+  .disclaimer {
+    margin-top: 2rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+    line-height: 1.7;
+  }
+  .disclaimer strong { color: var(--warn); }
+
+  /* Model info strip */
+  .model-strip {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+  .model-chip {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); flex-shrink: 0; }
+  .dot.warn { background: var(--warn); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span>credit</span>_risk_model</div>
+  <div class="badge">AdaBoost · AUC 0.593</div>
+  <div class="badge">German Credit Dataset</div>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Credit Risk <em>Predictor</em></h1>
+    <p>Enter applicant details to assess credit risk. Built on the German Credit Dataset using AdaBoost with SMOTE balancing — optimised for defaulter recall.</p>
+  </div>
+
+  <div class="model-strip">
+    <div class="model-chip"><span class="dot"></span> Model: AdaBoost Classifier</div>
+    <div class="model-chip"><span class="dot"></span> Recall (bad): 0.60</div>
+    <div class="model-chip"><span class="dot warn"></span> AUC: 0.593 — indicative only</div>
+  </div>
+
+  <div class="form-grid">
+    <div class="field">
+      <label>Age</label>
+      <input type="number" id="age" min="18" max="100" placeholder="e.g. 35" value="35">
+    </div>
+    <div class="field">
+      <label>Sex</label>
+      <select id="sex">
+        <option value="1">Male</option>
+        <option value="0">Female</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Job Level</label>
+      <select id="job">
+        <option value="0">0 — Unskilled, non-resident</option>
+        <option value="1">1 — Unskilled, resident</option>
+        <option value="2" selected>2 — Skilled</option>
+        <option value="3">3 — Highly skilled</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Housing</label>
+      <select id="housing">
+        <option value="own" selected>Own</option>
+        <option value="free">Free</option>
+        <option value="rent">Rent</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Saving Accounts</label>
+      <select id="saving">
+        <option value="little" selected>Little</option>
+        <option value="moderate">Moderate</option>
+        <option value="quite rich">Quite Rich</option>
+        <option value="rich">Rich</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Checking Account</label>
+      <select id="checking">
+        <option value="little" selected>Little</option>
+        <option value="moderate">Moderate</option>
+        <option value="rich">Rich</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Credit Amount (DM)</label>
+      <input type="number" id="credit" min="100" placeholder="e.g. 5000" value="5000">
+      <span class="hint">Deutsche Mark</span>
+    </div>
+    <div class="field">
+      <label>Duration (months)</label>
+      <input type="number" id="duration" min="1" max="72" placeholder="e.g. 24" value="24">
+    </div>
+    <div class="field" style="grid-column: 1 / -1;">
+      <label>Purpose</label>
+      <select id="purpose">
+        <option value="car">Car</option>
+        <option value="furniture/equipment" selected>Furniture / Equipment</option>
+        <option value="radio/TV">Radio / TV</option>
+        <option value="domestic appliances">Domestic Appliances</option>
+        <option value="repairs">Repairs</option>
+        <option value="education">Education</option>
+        <option value="business">Business</option>
+        <option value="vacation/others">Vacation / Others</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="btn-predict" onclick="predict()">Assess Credit Risk</button>
+
+  <div id="result">
+    <div class="result-header">
+      <div class="verdict" id="verdict-badge">GOOD</div>
+      <div class="result-label" id="result-label">Applicant is likely to repay the loan.</div>
+    </div>
+    <div class="result-body">
+      <div class="metric">
+        <div class="metric-label">Risk Score</div>
+        <div class="metric-value" id="risk-score">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Default Probability</div>
+        <div class="metric-value" id="default-prob">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Decision</div>
+        <div class="metric-value" id="decision">—</div>
+      </div>
+    </div>
+
+    <div class="bar-wrap">
+      <div class="bar-label">Default Risk</div>
+      <div class="bar-track">
+        <div class="bar-fill" id="risk-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="factors">
+      <div class="factors-title">Feature Impact (rule-based approximation)</div>
+      <div id="factor-list"></div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <strong>⚠ Disclaimer:</strong> This is a portfolio demonstration built on the German Credit Dataset (1000 samples, 1994). It uses a rule-based approximation of the trained AdaBoost model — not a live model inference. Do not use for real credit decisions. AUC 0.593 indicates limited predictive power without further tuning.
+  </div>
+</main>
+
+<script>
+function predict() {
+  const age      = parseInt(document.getElementById('age').value) || 30;
+  const sex      = parseInt(document.getElementById('sex').value);
+  const job      = parseInt(document.getElementById('job').value);
+  const housing  = document.getElementById('housing').value;
+  const saving   = document.getElementById('saving').value;
+  const checking = document.getElementById('checking').value;
+  const credit   = parseInt(document.getElementById('credit').value) || 3000;
+  const duration = parseInt(document.getElementById('duration').value) || 12;
+  const purpose  = document.getElementById('purpose').value;
+
+  // Risk scoring — calibrated to dataset statistics
+  let score = 0;
+  const factors = [];
+
+  // Duration (strongest predictor)
+  const durScore = duration > 36 ? 0.28 : duration > 24 ? 0.14 : duration > 12 ? 0.05 : 0;
+  score += durScore;
+  factors.push({ name: 'duration', impact: durScore, label: duration + ' months' });
+
+  // Credit amount
+  const credScore = credit > 10000 ? 0.22 : credit > 5000 ? 0.12 : credit > 2000 ? 0.04 : 0;
+  score += credScore;
+  factors.push({ name: 'credit amount', impact: credScore, label: 'DM ' + credit.toLocaleString() });
+
+  // Checking account
+  const checkMap = { little: 0.20, moderate: 0.08, rich: 0 };
+  const checkScore = checkMap[checking] ?? 0.12;
+  score += checkScore;
+  factors.push({ name: 'checking account', impact: checkScore, label: checking });
+
+  // Saving account
+  const saveMap = { little: 0.15, moderate: 0.06, 'quite rich': 0.02, rich: 0 };
+  const saveScore = saveMap[saving] ?? 0.10;
+  score += saveScore;
+  factors.push({ name: 'saving account', impact: saveScore, label: saving });
+
+  // Age (younger = higher risk)
+  const ageScore = age < 25 ? 0.10 : age < 30 ? 0.05 : 0;
+  score += ageScore;
+  factors.push({ name: 'age', impact: ageScore, label: age + ' yrs' });
+
+  // Housing
+  const housingScore = housing === 'rent' ? 0.08 : housing === 'free' ? 0.04 : 0;
+  score += housingScore;
+  factors.push({ name: 'housing', impact: housingScore, label: housing });
+
+  // Purpose
+  const purposeMap = { education: 0.08, vacation: 0.06, car: 0.04, business: 0.03, 'radio/TV': 0.01 };
+  const purposeScore = purposeMap[purpose] ?? 0.03;
+  score += purposeScore;
+  factors.push({ name: 'purpose', impact: purposeScore, label: purpose });
+
+  // Job
+  const jobScore = job === 0 ? 0.07 : job === 1 ? 0.03 : 0;
+  score += jobScore;
+  factors.push({ name: 'job level', impact: jobScore, label: 'level ' + job });
+
+  // Cap and add baseline
+  score = Math.min(score + 0.08, 0.99);
+  const prob = Math.round(score * 100);
+  const isGood = score < 0.40;
+
+  // Update UI
+  const result = document.getElementById('result');
+  result.style.display = 'block';
+
+  const badge = document.getElementById('verdict-badge');
+  badge.textContent = isGood ? 'GOOD' : 'BAD';
+  badge.className = 'verdict ' + (isGood ? 'good' : 'bad');
+
+  document.getElementById('result-label').textContent = isGood
+    ? 'Applicant is likely to repay the loan.'
+    : 'Applicant shows elevated default risk.';
+
+  const riskLabel = prob < 30 ? 'Low' : prob < 50 ? 'Moderate' : 'High';
+  document.getElementById('risk-score').textContent = riskLabel;
+  document.getElementById('risk-score').className = 'metric-value ' + (isGood ? 'good' : 'bad');
+
+  document.getElementById('default-prob').textContent = prob + '%';
+  document.getElementById('default-prob').className = 'metric-value ' + (isGood ? 'good' : 'bad');
+
+  document.getElementById('decision').textContent = isGood ? 'Approve' : 'Review';
+  document.getElementById('decision').className = 'metric-value ' + (isGood ? 'good' : 'bad');
+
+  const bar = document.getElementById('risk-bar');
+  bar.style.width = prob + '%';
+  bar.style.background = isGood
+    ? `linear-gradient(90deg, #3fb950, #d29922)`
+    : `linear-gradient(90deg, #d29922, #f85149)`;
+
+  // Factor bars
+  const maxImpact = Math.max(...factors.map(f => f.impact), 0.01);
+  const sorted = [...factors].sort((a,b) => b.impact - a.impact);
+  const list = document.getElementById('factor-list');
+  list.innerHTML = sorted.map(f => {
+    const pct = Math.round((f.impact / maxImpact) * 100);
+    const color = f.impact > 0.12 ? '#f85149' : f.impact > 0.06 ? '#d29922' : '#3fb950';
+    return `
+      <div class="factor-row">
+        <div class="factor-name">${f.name}</div>
+        <div class="factor-bar-track">
+          <div class="factor-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+        <div class="factor-val">${Math.round(f.impact*100)}%</div>
+      </div>`;
+  }).join('');
+}
+
+// Run on load with defaults
+predict();
+</script>
+</body>
+</html>
