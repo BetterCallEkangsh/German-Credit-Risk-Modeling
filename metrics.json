@@ -1,0 +1,1 @@
+{"cv_auc": 0.755, "test_auc": 0.754, "test_recall_bad": 0.6, "test_f1_bad": 0.562, "test_accuracy": 0.72}
